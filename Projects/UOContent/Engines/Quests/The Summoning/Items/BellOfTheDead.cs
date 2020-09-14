@@ -32,9 +32,13 @@ namespace Server.Engines.Quests.Doom
         public override void OnDoubleClick(Mobile from)
         {
             if (from.InRange(GetWorldLocation(), 2))
-                BeginSummon(from);
+            {
+                BeginSummon(@from);
+            }
             else
-                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            {
+                @from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            }
         }
 
         public virtual void BeginSummon(Mobile from)
@@ -95,7 +99,7 @@ namespace Server.Engines.Quests.Doom
                 );
                 Effects.PlaySound(loc, Map, 0x1FE);
 
-                Chyloth = new Chyloth { Direction = (Direction)(7 & (4 + (int)@from.GetDirectionTo(loc))) };
+                Chyloth = new Chyloth { Direction = (Direction)(7 & (4 + (int)from.GetDirectionTo(loc))) };
 
                 Chyloth.MoveToWorld(loc, Map);
 

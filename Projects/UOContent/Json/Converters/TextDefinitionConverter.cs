@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright (C) 2019-2020 - ModernUO Development Team                   *
+ * Copyright 2019-2020 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: TextDefinitionConverter.cs                                      *
  *                                                                       *
@@ -32,9 +32,13 @@ namespace Server.Json
         public override void Write(Utf8JsonWriter writer, TextDefinition value, JsonSerializerOptions options)
         {
             if (value.Number > 0)
+            {
                 writer.WriteNumberValue(value.Number);
+            }
             else
+            {
                 writer.WriteStringValue(value.String);
+            }
         }
     }
 }

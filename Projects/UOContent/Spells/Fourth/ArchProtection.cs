@@ -41,7 +41,9 @@ namespace Server.Spells.Fourth
                 SpellHelper.GetSurfaceTop(ref p);
 
                 if (!Core.AOS)
+                {
                     Effects.PlaySound(p, Caster.Map, 0x299);
+                }
 
                 if (Caster.Map == null)
                 {
@@ -57,17 +59,20 @@ namespace Server.Spells.Fourth
                     var party = Party.Get(Caster);
 
                     foreach (var m in targets)
+                    {
                         if (m == Caster || party?.Contains(m) == true)
                         {
                             Caster.DoBeneficial(m);
                             ProtectionSpell.Toggle(Caster, m);
                         }
+                    }
                 }
                 else
                 {
                     var val = (int)(Caster.Skills.Magery.Value / 10.0 + 1);
 
                     foreach (var m in targets)
+                    {
                         if (m.BeginAction<ArchProtectionSpell>())
                         {
                             Caster.DoBeneficial(m);
@@ -79,6 +84,7 @@ namespace Server.Spells.Fourth
                             m.FixedParticles(0x375A, 9, 20, 5027, EffectLayer.Waist);
                             m.PlaySound(0x1F7);
                         }
+                    }
                 }
             }
 
@@ -97,9 +103,8 @@ namespace Server.Spells.Fourth
 
         public static void RemoveEntry(Mobile m)
         {
-            if (_Table.TryGetValue(m, out var v))
+            if (_Table.Remove(m, out var v))
             {
-                _Table.Remove(m);
                 m.EndAction<ArchProtectionSpell>();
                 m.VirtualArmorMod -= Math.Min(v, m.VirtualArmorMod);
             }
@@ -113,7 +118,10 @@ namespace Server.Spells.Fourth
             {
                 var time = caster.Skills.Magery.Value * 1.2;
                 if (time > 144)
+                {
                     time = 144;
+                }
+
                 Delay = TimeSpan.FromSeconds(time);
                 Priority = TimerPriority.OneSecond;
 

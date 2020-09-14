@@ -86,10 +86,16 @@ namespace Server.Mobiles
                     m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(20, 30));
 
                     if (combatant is BaseCreature bc)
+                    {
                         if (bc.Controlled && bc.ControlMaster?.Deleted == false && bc.ControlMaster.Alive)
+                        {
                             if (bc.ControlMaster.Map == Map && bc.ControlMaster.InRange(this, 12) &&
                                 !UnderEffect(bc.ControlMaster))
+                            {
                                 Combatant = combatant = bc.ControlMaster;
+                            }
+                        }
+                    }
 
                     if (Utility.RandomDouble() < .1)
                     {
@@ -106,7 +112,9 @@ namespace Server.Mobiles
                             var loc = new Point3D(x, y, combatant.Map.GetAverageZ(x, y));
 
                             if (!combatant.Map.CanSpawnMobile(loc))
+                            {
                                 continue;
+                            }
 
                             var rabid = i switch
                             {
@@ -146,18 +154,19 @@ namespace Server.Mobiles
 
         public static void StopEffect(Mobile m, bool message)
         {
-            if (m_Table.TryGetValue(m, out var timer))
+            if (m_Table.Remove(m, out var timer))
             {
                 if (message)
+                {
                     m.PublicOverheadMessage(
                         MessageType.Emote,
                         m.SpeechHue,
                         true,
                         "* The open flame begins to scatter the swarm of insects *"
                     );
+                }
 
                 timer.Stop();
-                m_Table.Remove(m);
             }
         }
 
@@ -198,7 +207,9 @@ namespace Server.Mobiles
                     AOS.Damage(m, this, Utility.RandomMinMax(30, 40) - (Core.AOS ? 0 : 10), 100, 0, 0, 0, 0);
 
                     if (!m.Alive)
+                    {
                         StopEffect(m, false);
+                    }
                 }
             }
         }

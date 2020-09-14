@@ -49,7 +49,7 @@ namespace Server.Items
                 {
                     var root = item.RootParent;
 
-                    if (root != null && root != @from || item.Parent == from)
+                    if (root != null && root != from || item.Parent == from)
                     {
                         message = "You decide that item's current location is too awkward to get an accurate result.";
                     }
@@ -62,9 +62,13 @@ namespace Server.Items
                         var weight = item.Weight;
 
                         if (weight <= 0.0)
+                        {
                             message += "It is lighter than a feather.";
+                        }
                         else
+                        {
                             message += $"It weighs {weight} stones.";
+                        }
                     }
                     else
                     {

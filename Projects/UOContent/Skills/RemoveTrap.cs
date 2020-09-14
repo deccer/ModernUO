@@ -94,8 +94,8 @@ namespace Server.SkillHandlers
                     }
                     else
                     {
-                        if (Core.ML && isOwner || @from.CheckTargetSkill(SkillName.RemoveTrap, trap, 80.0, 100.0) &&
-                            @from.CheckTargetSkill(SkillName.Tinkering, trap, 80.0, 100.0))
+                        if (Core.ML && isOwner || from.CheckTargetSkill(SkillName.RemoveTrap, trap, 80.0, 100.0) &&
+                            from.CheckTargetSkill(SkillName.Tinkering, trap, 80.0, 100.0))
                         {
                             from.PrivateOverheadMessage(
                                 MessageType.Regular,
@@ -109,13 +109,15 @@ namespace Server.SkillHandlers
                                 var silver = faction.AwardSilver(from, trap.SilverFromDisarm);
 
                                 if (silver > 0)
-                                    from.SendLocalizedMessage(
+                                {
+                                    @from.SendLocalizedMessage(
                                         1008113,
                                         true,
                                         silver.ToString(
                                             "N0"
                                         )
                                     ); // You have been granted faction silver for removing the enemy trap :
+                                }
                             }
 
                             trap.Delete();
@@ -126,7 +128,9 @@ namespace Server.SkillHandlers
                         }
 
                         if (!isOwner)
-                            kit.ConsumeCharge(from);
+                        {
+                            kit.ConsumeCharge(@from);
+                        }
                     }
                 }
                 else

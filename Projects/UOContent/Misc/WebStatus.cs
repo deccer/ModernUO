@@ -25,7 +25,10 @@ namespace Server.Misc
 
         public static void Initialize()
         {
-            if (!Enabled) return;
+            if (!Enabled)
+            {
+                return;
+            }
 
             new StatusPage().Start();
 
@@ -34,7 +37,10 @@ namespace Server.Misc
 
         private static void Listen()
         {
-            if (!HttpListener.IsSupported) return;
+            if (!HttpListener.IsSupported)
+            {
+                return;
+            }
 
             if (_Listener == null)
             {
@@ -47,7 +53,10 @@ namespace Server.Misc
                 _Listener.Start();
             }
 
-            if (_Listener.IsListening) _Listener.BeginGetContext(ListenerCallback, null);
+            if (_Listener.IsListening)
+            {
+                _Listener.BeginGetContext(ListenerCallback, null);
+            }
         }
 
         private static void ListenerCallback(IAsyncResult result)
@@ -90,7 +99,10 @@ namespace Server.Misc
 
         protected override void OnTick()
         {
-            if (!Directory.Exists("web")) Directory.CreateDirectory("web");
+            if (!Directory.Exists("web"))
+            {
+                Directory.CreateDirectory("web");
+            }
 
             using (var op = new StreamWriter("web/status.html"))
             {
@@ -107,7 +119,7 @@ namespace Server.Misc
                 op.WriteLine("   tr.even td { background: #DDD; color: #222; }");
                 op.WriteLine("   </style>");
                 op.WriteLine("   <body>");
-                op.WriteLine("      <h1>RunUO Server Status</h1>");
+                op.WriteLine("      <h1>ModernUO Server Status</h1>");
                 op.WriteLine("      <h3>Online clients</h3>");
                 op.WriteLine("      <table cellpadding=\"0\" cellspacing=\"0\">");
                 op.WriteLine(

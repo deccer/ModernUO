@@ -1,22 +1,17 @@
-/***************************************************************************
- *                                  Main.cs
- *                            -------------------
- *   begin                : May 1, 2002
- *   copyright            : (C) The RunUO Software Team
- *   email                : info@runuo.com
- *
- *   $Id$
- *
- ***************************************************************************/
-
-/***************************************************************************
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- ***************************************************************************/
+/*************************************************************************
+ * ModernUO                                                              *
+ * Copyright 2019-2020 - ModernUO Development Team                       *
+ * Email: hi@modernuo.com                                                *
+ * File: Main.cs                                                         *
+ *                                                                       *
+ * This program is free software: you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation, either version 3 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
+ *************************************************************************/
 
 using System;
 using System.Collections.Generic;
@@ -30,8 +25,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Server.Json;
 using Server.Network;
 
@@ -42,7 +35,6 @@ namespace Server
         private static bool m_Crashed;
         private static Thread timerThread;
         private static string m_BaseDirectory;
-        private static string m_ExePath;
 
         private static bool m_Profiling;
         private static DateTime m_ProfileStart;
@@ -61,8 +53,6 @@ namespace Server
 
         private static readonly double m_HighFrequency = 1000.0 / Stopwatch.Frequency;
         private static readonly double m_LowFrequency = 1000.0 / TimeSpan.TicksPerSecond;
-
-        internal static ConsoleEventHandler m_ConsoleEventHandler;
 
         private static int m_CycleIndex = 1;
         private static readonly float[] m_CyclesPerSecond = new float[100];
@@ -114,8 +104,6 @@ namespace Server
                 ? m_ProfileTime + (DateTime.UtcNow - m_ProfileStart)
                 : m_ProfileTime;
 
-        internal static bool HaltOnWarning { get; private set; }
-
         public static Assembly Assembly { get; set; }
 
         // Assembly file version
@@ -138,8 +126,6 @@ namespace Server
 
         public static int ProcessorCount { get; private set; }
 
-        public static string ExePath => m_ExePath ??= Assembly.Location;
-
         public static string BaseDirectory
         {
             get
@@ -148,7 +134,7 @@ namespace Server
                 {
                     try
                     {
-                        m_BaseDirectory = ExePath;
+                        m_BaseDirectory = Assembly.Location;
 
                         if (m_BaseDirectory.Length > 0)
                         {
@@ -165,7 +151,9 @@ namespace Server
             }
         }
 
-        public static bool Closing { get; private set; }
+        public static CancellationTokenSource ClosingTokenSource { get; } = new CancellationTokenSource();
+
+        public static bool Closing => ClosingTokenSource.IsCancellationRequested;
 
         public static float CyclesPerSecond => m_CyclesPerSecond[(m_CycleIndex - 1) % m_CyclesPerSecond.Length];
 
@@ -180,11 +168,6 @@ namespace Server
                 if (m_Profiling)
                 {
                     Utility.Separate(sb, "-profile", " ");
-                }
-
-                if (HaltOnWarning)
-                {
-                    Utility.Separate(sb, "-haltonwarning", " ");
                 }
 
                 return sb.ToString();
@@ -279,15 +262,6 @@ namespace Server
 
                 if (!close)
                 {
-                    try
-                    {
-                        // Close all listeners
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-
                     Console.WriteLine("This exception is fatal, press return to exit");
                     Console.ReadLine();
                 }
@@ -296,30 +270,56 @@ namespace Server
             }
         }
 
-        private static bool OnConsoleEvent(ConsoleEventType type)
-        {
-            if (World.Saving || type == ConsoleEventType.CTRL_LOGOFF_EVENT)
-            {
-                return true;
-            }
-
-            Kill(); // Kill -> HandleClosed will handle waiting for the completion of flushing to disk
-
-            return true;
-        }
-
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
-            HandleClosed();
+            if (!Closing)
+            {
+                HandleClosed();
+            }
+        }
+
+        private static void Console_CancelKeyPressed(object sender, ConsoleCancelEventArgs e)
+        {
+            var keypress = e.SpecialKey switch
+            {
+                ConsoleSpecialKey.ControlBreak => "CTRL+BREAK",
+                _ => "CTRL+C"
+            };
+
+            Console.WriteLine("Core: Detected {0} pressed.", keypress);
+            e.Cancel = true;
+            Kill();
         }
 
         public static void Kill(bool restart = false)
         {
+            if (Closing)
+            {
+                return;
+            }
+
             HandleClosed();
 
             if (restart)
             {
-                Process.Start(ExePath, Arguments);
+                if (IsWindows)
+                {
+                    Process.Start("dotnet", Assembly.Location);
+                }
+                else
+                {
+                    var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "dotnet",
+                            Arguments = Assembly.Location,
+                            UseShellExecute = true
+                        }
+                    };
+
+                    process.Start();
+                }
             }
 
             Process.Kill();
@@ -327,14 +327,9 @@ namespace Server
 
         private static void HandleClosed()
         {
-            if (Closing)
-            {
-                return;
-            }
+            ClosingTokenSource.Cancel();
 
-            Closing = true;
-
-            Console.Write("Exiting...");
+            Console.Write("Core: Shutting down...");
 
             World.WaitForWriteCompletion();
 
@@ -364,10 +359,6 @@ namespace Server
                 {
                     Profiling = true;
                 }
-                else if (Insensitive.Equals(a, "-haltonwarning"))
-                {
-                    HaltOnWarning = true;
-                }
             }
 
             Thread = Thread.CurrentThread;
@@ -390,7 +381,6 @@ namespace Server
             }
 
             Utility.PushColor(ConsoleColor.Green);
-            // Added to help future code support on forums, as a 'check' people can ask for to it see if they recompiled core or not
             Console.WriteLine(
                 "ModernUO - [https://github.com/modernuo/modernuo] Version {0}.{1}.{2}.{3}",
                 Version.Major,
@@ -398,8 +388,19 @@ namespace Server
                 Version.Build,
                 Version.Revision
             );
-            Console.WriteLine("Core: Running on {0}\n", RuntimeInformation.FrameworkDescription);
             Utility.PopColor();
+
+            Utility.PushColor(ConsoleColor.DarkGray);
+            Console.WriteLine(@"Copyright 2019-2020 ModernUO Development Team
+                This program comes with ABSOLUTELY NO WARRANTY;
+                This is free software, and you are welcome to redistribute it under certain conditions.
+
+                You should have received a copy of the GNU General Public License
+                along with this program. If not, see <https://www.gnu.org/licenses/>.
+            ".TrimMultiline());
+            Utility.PopColor();
+
+            Console.WriteLine("Core: Running on {0}", RuntimeInformation.FrameworkDescription);
 
             var ttObj = new Timer.TimerThread();
             timerThread = new Thread(ttObj.TimerMain)
@@ -426,11 +427,7 @@ namespace Server
                 Console.WriteLine("Core: Optimizing for {0} processor{1}", ProcessorCount, ProcessorCount == 1 ? "" : "s");
             }
 
-            if (IsWindows)
-            {
-                m_ConsoleEventHandler = OnConsoleEvent;
-                UnsafeNativeMethods.SetConsoleCtrlHandler(m_ConsoleEventHandler, true);
-            }
+            Console.CancelKeyPress += Console_CancelKeyPressed;
 
             if (GCSettings.IsServerGC)
             {
@@ -472,12 +469,13 @@ namespace Server
             EventSink.InvokeServerStarted();
 
             // Start net socket server
-            var host = TcpServer.CreateWebHostBuilder().Build();
-            var life = host.Services.GetRequiredService<IHostApplicationLifetime>();
-            life.ApplicationStopping.Register(() => { Kill(); });
+            _tcpHost = TcpServer.CreateWebHostBuilder().Build();
 
-            host.Run();
+            // Run indefinitely and block
+            _tcpHost.RunAsync(ClosingTokenSource.Token).Wait();
         }
+
+        private static IWebHost _tcpHost;
 
         public static void RunEventLoop(IMessagePumpService messagePumpService)
         {
@@ -542,7 +540,10 @@ namespace Server
         {
             var isItem = type.IsSubclassOf(typeof(Item));
 
-            if (!isItem && !type.IsSubclassOf(typeof(Mobile))) return;
+            if (!isItem && !type.IsSubclassOf(typeof(Mobile)))
+            {
+                return;
+            }
 
             if (isItem)
             {
@@ -594,23 +595,6 @@ namespace Server
             {
                 Parallel.ForEach(assembly.GetTypes(), VerifyType);
             }
-        }
-
-        internal enum ConsoleEventType
-        {
-            CTRL_C_EVENT,
-            CTRL_BREAK_EVENT,
-            CTRL_CLOSE_EVENT,
-            CTRL_LOGOFF_EVENT = 5,
-            CTRL_SHUTDOWN_EVENT
-        }
-
-        internal delegate bool ConsoleEventHandler(ConsoleEventType type);
-
-        internal static class UnsafeNativeMethods
-        {
-            [DllImport("Kernel32")]
-            internal static extern bool SetConsoleCtrlHandler(ConsoleEventHandler callback, bool add);
         }
     }
 }

@@ -53,11 +53,9 @@ namespace Server.Spells.Ninjitsu
 
             attacker.RevealingAction();
 
-            if (m_Table.TryGetValue(defender, out var info))
+            if (m_Table.Remove(defender, out var info))
             {
                 info.m_Timer?.Stop();
-
-                m_Table.Remove(defender);
             }
 
             var ninjitsu = attacker.Skills.Ninjitsu.Fixed;
@@ -84,7 +82,9 @@ namespace Server.Spells.Ninjitsu
         public static bool GetMalus(Mobile target, ref int malus)
         {
             if (!m_Table.TryGetValue(target, out var info))
+            {
                 return false;
+            }
 
             malus = info.m_Malus;
             return true;

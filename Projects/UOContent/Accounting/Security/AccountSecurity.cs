@@ -1,6 +1,6 @@
 /*************************************************************************
  * ModernUO                                                              *
- * Copyright (C) 2019-2020 - ModernUO Development Team                   *
+ * Copyright 2019-2020 - ModernUO Development Team                       *
  * Email: hi@modernuo.com                                                *
  * File: AccountSecurity.cs                                              *
  *                                                                       *
@@ -46,7 +46,9 @@ namespace Server.Accounting.Security
                 );
 
             if (CurrentAlgorithm < PasswordProtectionAlgorithm.SHA2)
+            {
                 throw new Exception($"Security: {CurrentAlgorithm} is obsolete and not secure. Do not use it.");
+            }
         }
 
         public static IPasswordProtection GetPasswordProtection(PasswordProtectionAlgorithm algorithm)
