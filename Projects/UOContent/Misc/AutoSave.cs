@@ -167,7 +167,7 @@ namespace Server.Misc
 
             if (Directory.Exists(saves))
             {
-                Directory.Move(saves, FormatDirectory(root, m_Backups[^1], GetTimeStamp()));
+                Directory.Move(saves, FormatDirectory(root, m_Backups[^1], TimeStampProvider.GetTimeStamp()));
             }
         }
 
@@ -204,13 +204,6 @@ namespace Server.Misc
             }
 
             return null;
-        }
-
-        private static string GetTimeStamp()
-        {
-            var now = DateTime.UtcNow;
-
-            return $"{now.Day}-{now.Month}-{now.Year} {now.Hour}-{now.Minute:D2}-{now.Second:D2}";
         }
     }
 }
